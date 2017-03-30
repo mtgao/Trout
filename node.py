@@ -1,6 +1,6 @@
 import sys
 import socket
-import multiprocessing 
+import thread
 import pickle
 from message import Message
 from membershiplist import Memberlist 
@@ -19,6 +19,7 @@ class Node:
 		
 
 	def join(self):
+		print self.memberlist.members
 		print('Attempting to join cluster...')
 		m =  Message('join', self.memberlist, self.SELF_IP)
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -37,13 +38,29 @@ class Node:
 			data, addr = sock.recvfrom(1024)
 			m = pickle.loads(data)
 			print('Received message:', m.content)
-			
+
+			if(m.header == 'join'):
+				self.memberlist.addMember(m.content)
+				self.memberlist.updateTime() 
+			elif(m.header == 'leave'):
+				self.memberlist.removeMember(m.content)
+				self.memberlist.updateTime()
+				print self.memberlist.members
+			else:
+				print 'bad message'
+
+
 
 	def userIN(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		while True:
-			if(sys.stdin.readline().strip() == 'join'):
+			command = sys.stdin.readline().strip()
+			if(command == 'join'):
 				self.join()
+			elif(command == 'leave'):
+				self.leave()
+			elif(command == 'show'):
+				print(self.memberlist.members)
 
 def get_ip():
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -60,11 +77,9 @@ def main():
 		n = Node(0) 
 		n.join() 
 
-	listener = multiprocessing.Process(target=n.listen)
-	listener.start()
+	thread.start_new_thread(n.listen, ())
 
 	n.userIN() 
-
 
 
 
