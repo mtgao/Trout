@@ -41,7 +41,7 @@ class Node:
 
 			data, addr = sock.recvfrom(1024)
 			m = pickle.loads(data)
-			print('Received message:', m.content)
+			#print('Received message:', m.content)
 
 			if(m.header == 'join'):
 				userInfo = m.content.split(':')  
@@ -64,7 +64,6 @@ class Node:
 
 			elif(m.header == 'ping'):
 				self.memberlist.updateList(m.memberlist)
-				print self.memberlist.timestamp
 
 				# send a ping act for failure detection
 				ackMessage =  Message('ping-ack', self.memberlist, self.SELF_IP)
@@ -83,17 +82,17 @@ class Node:
 	# use SWIM style round robin pinging
 	def ping(self):
 		while True:
-			for user, IP in self.memberlist.members.iteritems():
+			for user in self.memberlist.members.keys():
 				time.sleep(1)
-				m =  Message('ping', self.memberlist, IP)
+				m =  Message('ping', self.memberlist, self.memberlist.members[user])
 				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-				sockSend.sendto(pickle.dumps(m), (IP, UDP_PORT)) 
+				sockSend.sendto(pickle.dumps(m), (self.memberlist.members[user], UDP_PORT)) 
 
 				# timeout is 3 seconds from now
 				timeout = time.time() + 3
 				while True:
 					if(self.pingAck == 1):
-						print 'ping ack received!'
+						#print 'ping ack received!'
 						self.pingAck = 0
 						break
 					if(time.time() > timeout):
