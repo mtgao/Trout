@@ -2,15 +2,15 @@ import time
 
 class Memberlist:
 
-	def __init__(self, IP = None):
+	def __init__(self, user = None, IP = None):
 		self.timestamp = time.strftime('%H:%M:%S')
-		self.members = set([IP]) 
+		self.members = {user:IP}
 
-	def addMember(self, IP):
-		self.members.add(IP)
+	def addMember(self, user, IP):
+		self.members[user] = IP 
 
-	def removeMember(self, IP):
-		self.members.discard(IP)
+	def removeMember(self, user):
+		del self.members[user]
 
 	def updateTime(self):
 		self.timestamp = time.strftime('%H:%M:%S')

@@ -12,23 +12,24 @@ UDP_PORT = 5005
 class Node:
 	introducer = 0
 
-	def __init__(self, isIntroducer):
+	def __init__(self, isIntroducer, user):
+		self.user = user
 		self.SELF_IP = get_ip()
 		if(isIntroducer):
 			introducer = 1
-		self.memberlist = Memberlist(self.SELF_IP)
+		self.memberlist = Memberlist(self.user, self.SELF_IP)
 		
 
 	def join(self):
 		print self.memberlist.members
 		print('Attempting to join cluster...')
-		m =  Message('join', self.memberlist, self.SELF_IP)
+		m =  Message('join', self.memberlist, self.user + ':' + self.SELF_IP)
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
 
 	def leave(self):
 		print('Attempting to leave cluster...')
-		m =  Message('leave', self.memberlist, self.SELF_IP)
+		m =  Message('leave', self.memberlist, self.user)
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
 
@@ -43,14 +44,14 @@ class Node:
 			print('Received message:', m.content)
 
 			if(m.header == 'join'):
-				self.memberlist.addMember(m.content)
+				userInfo = m.content.split(':')  
+				self.memberlist.addMember(userInfo[0], userInfo[1])
 				self.memberlist.updateTime() 
 
 				# send join ack so new member has latest list
 				ackMessage =  Message('join-ack', self.memberlist, self.SELF_IP)
 				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-				sockSend.sendto(pickle.dumps(ackMessage), (m.content, UDP_PORT)) 
-				print 'sent'
+				sockSend.sendto(pickle.dumps(ackMessage), (userInfo[1], UDP_PORT)) 
 
 			elif(m.header == 'join-ack'):
 				print('ack received')
@@ -65,6 +66,8 @@ class Node:
 				self.memberlist.updateList(m.memberlist)
 				print self.memberlist.timestamp
 
+				# add a ping ack and we'll have a failure detector
+
 			else:
 				print 'bad message'
 
@@ -73,7 +76,7 @@ class Node:
 		while True:
 			for IP in self.memberlist.members:
 				time.sleep(1)
-				m =  Message('ping', self.memberlist, self.SELF_IP)
+				m =  Message('ping', self.memberlist, 'member check message')
 				sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 				sock.sendto(pickle.dumps(m), (IP, UDP_PORT)) 
 
@@ -99,11 +102,11 @@ def get_ip():
 
 
 def main():
-	if sys.argv[1:] == ['-i']:
+	if sys.argv[1] == '-i':
 		print('Starting introducer node...')
-		n = Node(1)
+		n = Node(1, sys.argv[2])
 	else:
-		n = Node(0) 
+		n = Node(0, sys.argv[1]) 
 		n.join() 
 
 	thread.start_new_thread(n.listen, ())
