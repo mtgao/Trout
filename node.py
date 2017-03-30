@@ -1,7 +1,5 @@
-import sys
-import socket
-import thread
-import pickle
+import sys, thread
+import socket, select, pickle
 import time
 from message import Message
 from membershiplist import Memberlist 
@@ -18,22 +16,24 @@ class Node:
 		if(isIntroducer):
 			introducer = 1
 		self.memberlist = Memberlist(self.user, self.SELF_IP)
-		
+		self.pingAck = 0
+
 
 	def join(self):
 		print self.memberlist.members
 		print('Attempting to join cluster...')
 		m =  Message('join', self.memberlist, self.user + ':' + self.SELF_IP)
-		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sock.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
+		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		sockSend.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
 
 	def leave(self):
 		print('Attempting to leave cluster...')
 		m =  Message('leave', self.memberlist, self.user)
-		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sock.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
+		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		sockSend.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
 
 	def listen(self):
+
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.bind((self.SELF_IP, UDP_PORT))
 
@@ -66,7 +66,16 @@ class Node:
 				self.memberlist.updateList(m.memberlist)
 				print self.memberlist.timestamp
 
+				# send a ping act for failure detection
+				ackMessage =  Message('ping-ack', self.memberlist, self.SELF_IP)
+				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+				sockSend.sendto(pickle.dumps(ackMessage), (m.content, UDP_PORT)) 
+
+			elif(m.header == 'ping-ack'):
+				self.pingAck = 1
+
 				# add a ping ack and we'll have a failure detector
+
 
 			else:
 				print 'bad message'
@@ -74,11 +83,24 @@ class Node:
 	# use SWIM style round robin pinging
 	def ping(self):
 		while True:
-			for IP in self.memberlist.members:
+			for user, IP in self.memberlist.members.iteritems():
 				time.sleep(1)
-				m =  Message('ping', self.memberlist, 'member check message')
-				sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-				sock.sendto(pickle.dumps(m), (IP, UDP_PORT)) 
+				m =  Message('ping', self.memberlist, IP)
+				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+				sockSend.sendto(pickle.dumps(m), (IP, UDP_PORT)) 
+
+				# timeout is 3 seconds from now
+				timeout = time.time() + 3
+				while True:
+					if(self.pingAck == 1):
+						print 'ping ack received!'
+						self.pingAck = 0
+						break
+					if(time.time() > timeout):
+						print 'ping ack not received!'
+						self.memberlist.removeMember(user)
+						break
+
 
 
 	def userIN(self):
