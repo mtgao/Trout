@@ -35,7 +35,9 @@ class Node:
 	def listen(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sock.bind((self.SELF_IP, UDP_PORT))
+
 		while True:
+
 			data, addr = sock.recvfrom(1024)
 			m = pickle.loads(data)
 			print('Received message:', m.content)
@@ -43,13 +45,26 @@ class Node:
 			if(m.header == 'join'):
 				self.memberlist.addMember(m.content)
 				self.memberlist.updateTime() 
+
+				# send join ack so new member has latest list
+				ackMessage =  Message('join-ack', self.memberlist, self.SELF_IP)
+				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+				sockSend.sendto(pickle.dumps(ackMessage), (m.content, UDP_PORT)) 
+				print 'sent'
+
+			elif(m.header == 'join-ack'):
+				print('ack received')
+				self.memberlist.updateList(m.memberlist)
+
 			elif(m.header == 'leave'):
 				self.memberlist.removeMember(m.content)
 				self.memberlist.updateTime()
 				print self.memberlist.members
+
 			elif(m.header == 'ping'):
 				self.memberlist.updateList(m.memberlist)
 				print self.memberlist.timestamp
+
 			else:
 				print 'bad message'
 
