@@ -2,6 +2,7 @@ import sys
 import socket
 import thread
 import pickle
+import time
 from message import Message
 from membershiplist import Memberlist 
 
@@ -46,9 +47,20 @@ class Node:
 				self.memberlist.removeMember(m.content)
 				self.memberlist.updateTime()
 				print self.memberlist.members
+			elif(m.header == 'ping'):
+				self.memberlist.updateList(m.memberlist)
+				print self.memberlist.timestamp
 			else:
 				print 'bad message'
 
+	# use SWIM style round robin pinging
+	def ping(self):
+		while True:
+			for IP in self.memberlist.members:
+				time.sleep(1)
+				m =  Message('ping', self.memberlist, self.SELF_IP)
+				sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+				sock.sendto(pickle.dumps(m), (IP, UDP_PORT)) 
 
 
 	def userIN(self):
@@ -59,6 +71,8 @@ class Node:
 				self.join()
 			elif(command == 'leave'):
 				self.leave()
+			elif(command == 'ping'):
+				self.ping()
 			elif(command == 'show'):
 				print(self.memberlist.members)
 
