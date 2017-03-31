@@ -60,7 +60,6 @@ class Node:
 			elif(m.header == 'leave'):
 				self.memberlist.removeMember(m.content)
 				self.memberlist.updateTime()
-				print self.memberlist.members
 
 			elif(m.header == 'ping'):
 				self.memberlist.updateList(m.memberlist)
@@ -71,7 +70,6 @@ class Node:
 				sockSend.sendto(pickle.dumps(ackMessage), (m.content, UDP_PORT)) 
 
 			elif(m.header == 'ping-ack'):
-				print 'ping ack received'
 				self.pingAck = 1
 
 				# add a ping ack and we'll have a failure detector
