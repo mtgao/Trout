@@ -41,7 +41,7 @@ class Node:
 
 			data, addr = sock.recvfrom(1024)
 			m = pickle.loads(data)
-			#print('Received message:', m.content)
+			print('Received message:', m.header, m.content)
 
 			if(m.header == 'join'):
 				userInfo = m.content.split(':')  
@@ -71,6 +71,7 @@ class Node:
 				sockSend.sendto(pickle.dumps(ackMessage), (m.content, UDP_PORT)) 
 
 			elif(m.header == 'ping-ack'):
+				print 'ping ack received'
 				self.pingAck = 1
 
 				# add a ping ack and we'll have a failure detector
@@ -83,22 +84,23 @@ class Node:
 	def ping(self):
 		while True:
 			for user in self.memberlist.members.keys():
-				time.sleep(1)
-				m =  Message('ping', self.memberlist, self.memberlist.members[user])
-				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-				sockSend.sendto(pickle.dumps(m), (self.memberlist.members[user], UDP_PORT)) 
+				if user != self.user:
+					time.sleep(1)
+					m =  Message('ping', self.memberlist, self.SELF_IP)
+					sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+					sockSend.sendto(pickle.dumps(m), (self.memberlist.members[user], UDP_PORT)) 
 
-				# timeout is 3 seconds from now
-				timeout = time.time() + 3
-				while True:
-					if(self.pingAck == 1):
-						#print 'ping ack received!'
-						self.pingAck = 0
-						break
-					if(time.time() > timeout):
-						print 'ping ack not received!'
-						self.memberlist.removeMember(user)
-						break
+					# timeout is 3 seconds from now
+					timeout = time.time() + 3
+					while True:
+						if(self.pingAck == 1):
+							#print 'ping ack received!'
+							self.pingAck = 0
+							break
+						if(time.time() > timeout):
+							print 'ping ack not received!'
+							self.memberlist.removeMember(user)
+							break
 
 
 
@@ -131,6 +133,7 @@ def main():
 		n.join() 
 
 	thread.start_new_thread(n.listen, ())
+	thread.start_new_thread(n.ping, ())
 
 	n.userIN() 
 
