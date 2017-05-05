@@ -41,7 +41,7 @@ class Node:
 
 			data, addr = sock.recvfrom(1024)
 			m = pickle.loads(data)
-			print('Received message:', m.header, m.content)
+			# print('Received message:', m.header, m.content)
 
 			if(m.header == 'join'):
 				userInfo = m.content.split(':')  
@@ -55,7 +55,7 @@ class Node:
 
 			elif(m.header == 'join-ack'):
 				print('ack received')
-				self.memberlist.updateList(m.memberlist)
+				self.memberlist.forceUpdateList(m.memberlist)
 
 			elif(m.header == 'leave'):
 				self.memberlist.removeMember(m.content)

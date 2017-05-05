@@ -20,3 +20,7 @@ class Memberlist:
 		if(self.timestamp < otherList.timestamp):
 			self.members = otherlist.members 
 			self.timestamp = otherlist.timestamp 
+			
+	def forceUpdateList(self, otherList): 
+		self.members = otherlist.members 
+		self.timestamp = otherlist.timestamp 
