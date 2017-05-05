@@ -1,4 +1,4 @@
-import sys, thread
+import sys, thread, os, signal
 import socket, select, pickle
 import time
 from message import Message
@@ -28,9 +28,10 @@ class Node:
 
 	def leave(self):
 		print('Attempting to leave cluster...')
-		m =  Message('leave', self.memberlist, self.user)
-		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sockSend.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
+#		m =  Message('leave', self.memberlist, self.user)
+#		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#		sockSend.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
+                os.kill(os.getpid(), signal.SIGUSR1) 
 
 	def listen(self):
 
