@@ -18,9 +18,9 @@ class Memberlist:
 	def updateList(self, otherList):
 		# update our membership list if other list contains more recent timestamp
 		if(self.timestamp < otherList.timestamp):
-			self.members = otherlist.members 
-			self.timestamp = otherlist.timestamp 
-			
+			self.members = otherList.members 
+			self.timestamp = otherList.timestamp 
+
 	def forceUpdateList(self, otherList): 
-		self.members = otherlist.members 
-		self.timestamp = otherlist.timestamp 
+		self.members = otherList.members 
+		self.timestamp = otherList.timestamp 
