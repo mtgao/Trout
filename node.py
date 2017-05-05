@@ -30,7 +30,6 @@ class Node:
 
 
 	def join(self):
-		print self.memberlist.members
 		print('Attempting to join cluster...')
 		m =  Message('join', self.memberlist, self.user + ':' + self.SELF_IP,[])
 		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -50,7 +49,6 @@ class Node:
 
 	def sendMessage(self, content, directions):
 		print('Sending message...')
-		print(directions) 
 		directions.pop(0) 
 		self.getPublicKey(directions[-1])
 		while True:
@@ -85,7 +83,6 @@ class Node:
 				sockSend.sendto(pickle.dumps(ackMessage), (userInfo[1], UDP_PORT)) 
 
 			elif(m.header == 'join-ack'):
-				print('ack received')
 				self.memberlist.forceUpdateList(m.memberlist)
 
 			elif(m.header == 'leave'):
@@ -105,7 +102,6 @@ class Node:
 
 			elif(m.header == 'message'):
 				print('message received')
-				print(m.directions)
 				if(not m.directions):
 					msg = self.key.decrypt(m.content)
 					print(msg) 
@@ -169,7 +165,6 @@ class Node:
 				g = Graph(members)
 				for pair in permutations(members, 2):
 					g.addEdge(pair, randint(1, 50))
-				g.display()
 				directions = construct_path(1, g, self.user, command[1])
 				self.sendMessage(" ".join(command[2:]), directions) 
 
