@@ -140,8 +140,8 @@ class Node:
 				for pair in permutations(members, 2):
 					g.addEdge(pair, randint(1, 50))
 				g.display()
-				directions = construct_path(1, g, "michael", "esh")
-				self.sendMessage(" ".join(command[1:]), directions) 
+				directions = construct_path(1, g, self.user, command[1])
+				self.sendMessage(" ".join(command[2:]), directions) 
 
 def get_ip():
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
