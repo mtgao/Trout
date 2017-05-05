@@ -3,6 +3,9 @@ import socket, select, pickle
 import time
 from message import Message
 from membershiplist import Memberlist 
+from itertools import permutations
+from graph import Graph
+from random import randint
 
 INTRODUCER_IP = '192.168.1.2'
 UDP_PORT = 5005
@@ -36,10 +39,10 @@ class Node:
 	def sendMessage(self, content, directions):
 		print('Sending message...')
 		print(directions) 
-		nextNode = directions.pop(0) 
+		directions.pop(0) 
 		m = Message('message', self.memberlist, content, directions)
 		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sockSend.sendto(pickle.dumps(m), (self.memberlist.members[nextNode], UDP_PORT)) 
+		sockSend.sendto(pickle.dumps(m), (self.memberlist.members[directions[0]], UDP_PORT)) 
 
 	def listen(self):
 
@@ -132,7 +135,12 @@ class Node:
 			elif(command == 'show'):
 				print(self.memberlist.members)
 			elif(command == 'send'):
-				directions = ['michael', 'michael', 'michael']
+				members = self.memberlist.members.keys() 
+				g = Graph(members)
+				for pair in permutations(members, 2):
+					g.addEdge(pair, randint(1, 50))
+				g.display()
+				directions = construct_path(0, g, "michael", "esh")
 				self.sendMessage('hellloooo', directions) 
 
 def get_ip():
@@ -140,6 +148,15 @@ def get_ip():
 	s.connect(("8.8.8.8", 80))
 	return s.getsockname()[0]
 
+def construct_path(min_count, g, src, dest):
+
+	path = [src]
+	latest = src
+	for i in range(0, min_count):
+		latest = g.findMinNode(latest, path, dest)
+		path.append(latest)
+	path.append(dest)
+	return path
 
 
 def main():
