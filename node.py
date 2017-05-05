@@ -6,6 +6,8 @@ from membershiplist import Memberlist
 from itertools import permutations
 from graph import Graph
 from random import randint
+from Crypto.PublicKey import RSA
+from Crypto import Random
 
 INTRODUCER_IP = '192.168.1.2'
 UDP_PORT = 5005
@@ -20,6 +22,11 @@ class Node:
 			introducer = 1
 		self.memberlist = Memberlist(self.user, self.SELF_IP)
 		self.pingAck = 0
+		self.keyAck = 0
+		random_generator = Random.new().read
+		self.key = RSA.generate(1024, random_generator)
+		self.publicKey = self.key.publickey().exportKey()
+		self.senderKey = ''
 
 
 	def join(self):
@@ -36,11 +43,23 @@ class Node:
 #		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #		sockSend.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
 
+	def getPublicKey(self, user):
+		m = Message('key', self.memberlist, self.user + ':' + self.SELF_IP,[])
+		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		sockSend.sendto(pickle.dumps(m), (self.memberlist.members[user], UDP_PORT)) 
+
 	def sendMessage(self, content, directions):
 		print('Sending message...')
 		print(directions) 
 		directions.pop(0) 
-		m = Message('message', self.memberlist, content, directions)
+		self.getPublicKey(directions[-1])
+		while True:
+			if(self.keyAck == 1):
+				self.keyAck == 0 
+				break
+		new_key = RSA.importKey(self.senderKey)
+		encryptedContent = new_key.encrypt(content, 32)
+		m = Message('message', self.memberlist, encryptedContent, directions)
 		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sockSend.sendto(pickle.dumps(m), (self.memberlist.members[directions[0]], UDP_PORT)) 
 
@@ -88,12 +107,23 @@ class Node:
 				print('message received')
 				print(m.directions)
 				if(not m.directions):
-					print(m.content) 
+					msg = self.key.decrypt(m.content)
+					print(msg) 
 				else:
 					nextNode = m.directions.pop(0)
 					m = Message('message', self.memberlist, m.content, m.directions)
 					sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 					sockSend.sendto(pickle.dumps(m), (self.memberlist.members[nextNode], UDP_PORT))
+
+			elif(m.header == 'key'):
+				userInfo = m.content.split(':')  
+				ackMessage =  Message('key-ack', self.memberlist, self.publicKey,[])
+				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+				sockSend.sendto(pickle.dumps(ackMessage), (userInfo[1], UDP_PORT)) 
+
+			elif(m.header == 'key-ack'):
+				self.senderKey = m.content
+				self.keyAck = 1
 
 			else:
 				print 'bad message'
