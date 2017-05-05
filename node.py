@@ -125,23 +125,23 @@ class Node:
 	def userIN(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		while True:
-			command = sys.stdin.readline().strip()
-			if(command == 'join'):
+			command = sys.stdin.readline().strip().split()
+			if(command[0] == 'join'):
 				self.join()
-			elif(command == 'leave'):
+			elif(command[0] == 'leave'):
 				self.leave()
-			elif(command == 'ping'):
+			elif(command[0] == 'ping'):
 				self.ping()
-			elif(command == 'show'):
+			elif(command[0] == 'show'):
 				print(self.memberlist.members)
-			elif(command == 'send'):
+			elif(command[0] == 'send'):
 				members = self.memberlist.members.keys() 
 				g = Graph(members)
 				for pair in permutations(members, 2):
 					g.addEdge(pair, randint(1, 50))
 				g.display()
-				directions = construct_path(0, g, "michael", "esh")
-				self.sendMessage('hellloooo', directions) 
+				directions = construct_path(1, g, "michael", "esh")
+				self.sendMessage(" ".join(command[1:]), directions) 
 
 def get_ip():
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
