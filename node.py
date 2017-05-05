@@ -36,9 +36,10 @@ class Node:
 	def sendMessage(self, content, directions):
 		print('Sending message...')
 		print(directions) 
+		nextNode = directions.pop(0) 
 		m = Message('message', self.memberlist, content, directions)
 		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		sockSend.sendto(pickle.dumps(m), (self.memberlist.members[directions[0]], UDP_PORT)) 
+		sockSend.sendto(pickle.dumps(m), (self.memberlist.members[nextNode], UDP_PORT)) 
 
 	def listen(self):
 
@@ -49,7 +50,7 @@ class Node:
 
 			data, addr = sock.recvfrom(1024)
 			m = pickle.loads(data)
-			# print('Received message:', m.header, m.content)
+			#print('Received message:', m.header, m.content)
 
 			if(m.header == 'join'):
 				userInfo = m.content.split(':')  
@@ -82,10 +83,11 @@ class Node:
 
 			elif(m.header == 'message'):
 				print('message received')
-				nextNode = m.directions.pop(0)
+				print(m.directions)
 				if(not m.directions):
 					print(m.content) 
 				else:
+					nextNode = m.directions.pop(0)
 					m = Message('message', self.memberlist, m.content, m.directions)
 					sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 					sockSend.sendto(pickle.dumps(m), (self.memberlist.members[nextNode], UDP_PORT))
