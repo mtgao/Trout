@@ -22,16 +22,23 @@ class Node:
 	def join(self):
 		print self.memberlist.members
 		print('Attempting to join cluster...')
-		m =  Message('join', self.memberlist, self.user + ':' + self.SELF_IP)
+		m =  Message('join', self.memberlist, self.user + ':' + self.SELF_IP,[])
 		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		sockSend.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
 
 	def leave(self):
 		print('Attempting to leave cluster...')
+		os.kill(os.getpid(), signal.SIGUSR1)
 #		m =  Message('leave', self.memberlist, self.user)
 #		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #		sockSend.sendto(pickle.dumps(m), (INTRODUCER_IP, UDP_PORT)) 
-                os.kill(os.getpid(), signal.SIGUSR1) 
+
+	def sendMessage(self, content, directions):
+		print('Sending message...')
+		print(directions) 
+		m = Message('message', self.memberlist, content, directions)
+		sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		sockSend.sendto(pickle.dumps(m), (self.memberlist.members[directions[0]], UDP_PORT)) 
 
 	def listen(self):
 
@@ -50,7 +57,7 @@ class Node:
 				self.memberlist.updateTime() 
 
 				# send join ack so new member has latest list
-				ackMessage =  Message('join-ack', self.memberlist, self.SELF_IP)
+				ackMessage =  Message('join-ack', self.memberlist, self.SELF_IP,[])
 				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 				sockSend.sendto(pickle.dumps(ackMessage), (userInfo[1], UDP_PORT)) 
 
@@ -66,15 +73,22 @@ class Node:
 				self.memberlist.updateList(m.memberlist)
 
 				# send a ping act for failure detection
-				ackMessage =  Message('ping-ack', self.memberlist, self.SELF_IP)
+				ackMessage =  Message('ping-ack', self.memberlist, self.SELF_IP,[])
 				sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 				sockSend.sendto(pickle.dumps(ackMessage), (m.content, UDP_PORT)) 
 
 			elif(m.header == 'ping-ack'):
 				self.pingAck = 1
 
-				# add a ping ack and we'll have a failure detector
-
+			elif(m.header == 'message'):
+				print('message received')
+				nextNode = m.directions.pop(0)
+				if(not m.directions):
+					print(m.content) 
+				else:
+					m = Message('message', self.memberlist, m.content, m.directions)
+					sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+					sockSend.sendto(pickle.dumps(m), (self.memberlist.members[nextNode], UDP_PORT))
 
 			else:
 				print 'bad message'
@@ -85,7 +99,7 @@ class Node:
 			for user in self.memberlist.members.keys():
 				if user != self.user:
 					time.sleep(1)
-					m =  Message('ping', self.memberlist, self.SELF_IP)
+					m =  Message('ping', self.memberlist, self.SELF_IP,[])
 					sockSend = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 					sockSend.sendto(pickle.dumps(m), (self.memberlist.members[user], UDP_PORT)) 
 
@@ -115,6 +129,9 @@ class Node:
 				self.ping()
 			elif(command == 'show'):
 				print(self.memberlist.members)
+			elif(command == 'send'):
+				directions = ['michael', 'michael', 'michael']
+				self.sendMessage('hellloooo', directions) 
 
 def get_ip():
 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
